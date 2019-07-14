@@ -3,6 +3,7 @@ package org.afc.apoc;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
@@ -28,46 +29,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void sendMessage(View view) {
         System.out.println("view " + view.getId());
-
-        try {
-            new Thread(new Runnable() {
-                @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-                @Override
-                public void run() {
-                    try (ServerSocket ss = new ServerSocket(12240)) {
-                        Socket socket = ss.accept();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            ).start();
-
-            for (final Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces(); interfaces!= null && interfaces.hasMoreElements(); ) {
-                final NetworkInterface cur = interfaces.nextElement();
-                if (cur.isLoopback()) {
-                    continue;
-                }
-                System.out.println("interface " + cur.getName());
-
-                for (final InterfaceAddress addr : cur.getInterfaceAddresses()) {
-                    final InetAddress inet_addr = addr.getAddress();
-                    if (!(inet_addr instanceof Inet4Address)) {
-                        continue;
-                    }
-                    System.out.println("  address: " + inet_addr.getHostAddress() + "/" + addr.getNetworkPrefixLength());
-                    System.out.println("  broadcast address: " + addr.getBroadcast().getHostAddress());
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        Log.i("tt", "view " + view.getId());
 
         Intent intent = new Intent(this, MsgSentActivity.class);
         EditText editText = (EditText) findViewById(R.id.editText);
         String message = editText.getText().toString();
         intent.putExtra("msg", message);
         startActivity(intent);
+        ClientSocketIntentService.enqueueWork(getBaseContext(), ClientSocketIntentService.class, 100, intent);
+    }
 
+    public void startListen(View view) {
+        Intent intent = new Intent(this, ServerSocketIntentService.class);
+        intent.putExtra("port", "11224");
+        ServerSocketIntentService.enqueueWork(getBaseContext(), ServerSocketIntentService.class, 100, intent);
+//    startActivity(intent);
     }
 }
